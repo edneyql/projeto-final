@@ -1,0 +1,1 @@
+export function requireText(v,label='Campo'){ if(!v||!String(v).trim()) throw new Error(`${label} é obrigatório.`); }
