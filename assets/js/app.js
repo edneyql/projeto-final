@@ -74,13 +74,13 @@ function migrateAllProjectsCategories(){
 function fillAssigneeSelect(){
   const sel=$('note-assignee'); if(!sel) return;
   const users=Store.listUsers(); const me=Store.getCurrentUser();
-  sel.innerHTML = users.map(u=>`<option value="${u.id}" ${me&&u.id===me.id?'selected':''}>${u.name}</option>`).join('');
+  sel.innerHTML = users.map(u=>`<option value="${String(u.id)}" ${me&&String(u.id)===String(me.id)?'selected':''}>${u.name}</option>`).join('');
 }
 function fillUserFilter(){
   const sel=$('filter-user'); if(!sel) return;
   const users=Store.listUsers();
   sel.innerHTML = `<option value="__all">Todos</option><option value="__me">Só eu</option>` +
-    users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+    users.map(u=>`<option value="${String(u.id)}">${u.name}</option>`).join('');
 }
 function getFilters(){ return {
   q:$('q')?.value||'',
@@ -160,7 +160,11 @@ function renderApp(){
   const proj=Store.getCurrentProject(); if(!proj){ goProjects(); return; }
   ensureCategories(proj.id);
   UI.renderProjectMenu(); UI.renderUserMenu(); UI.renderCategories(proj.id);
+  // Salva valor atual do filtro de responsável
+  let prevWho = $('filter-user')?.value || '__all';
   fillAssigneeSelect(); fillUserFilter();
+  // Restaura valor anterior do filtro de responsável (não sobrescreve seleção do usuário)
+  if ($('filter-user')) $('filter-user').value = prevWho;
 
   const filters = getFilters();
   if(currentView==='list'){
@@ -210,11 +214,10 @@ function bindEvents(){
   on('view-board','click', ()=>{ currentView='board'; localStorage.setItem(PREF_VIEW_KEY,'board'); renderApp(); });
 
   on('q','input', renderApp);
-  // Removido select de categoria, filtragem agora é por checkbox
-  // Garante que qualquer mudança em checkbox de categoria dispara filtro
+  // Filtro de categoria agora só por checkbox
   document.getElementById('category-list')?.addEventListener('change', (e) => {
     if(e.target.classList.contains('cat-filter')) {
-      setTimeout(renderApp, 0); // Garante atualização após clique
+      renderApp();
     }
   });
   on('filter-status','change', renderApp);
@@ -421,10 +424,10 @@ function bindEvents(){
 
   on('save-note','click',(e)=>{
     try{
-      const title=$('note-title')?.value, category=$('note-category')?.value,
-            assignee=$('note-assignee')?.value, status=$('note-status')?.value,
-            content=$('note-content')?.value, priority=$('note-priority')?.value || 'normal',
-            dueDate=$('note-due')?.value || '';
+  const title=$('note-title')?.value, category=$('note-category')?.value,
+    assignee=String($('note-assignee')?.value), status=$('note-status')?.value,
+    content=$('note-content')?.value, priority=$('note-priority')?.value || 'normal',
+    dueDate=$('note-due')?.value || '';
       requireText(title,'Título'); requireText(content,'Conteúdo');
     const currentProj=Store.getCurrentProject(); const id=editingNoteId ?? crypto.randomUUID();
     Store.upsertNote({ id, projectId:currentProj.id, userId:assignee, title, category, status, content, priority, dueDate });

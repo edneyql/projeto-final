@@ -171,13 +171,17 @@ const UI = {
   renderCategories(projectId){
     const list=$('category-list'), selectCat=$('note-category'), filterCat=$('filter-category');
     const cats=Store.listCategories(projectId);
-
+    // Recupera categorias marcadas atualmente nos filtros
+    let checkedCats = [];
+    try {
+      checkedCats = Array.from(document.querySelectorAll('.cat-filter:checked')).map(cb=>cb.value);
+    } catch {}
     if(list){
       list.innerHTML = cats.length
         ? cats.map((c,i)=>
           `<li class="cat-row">
             <label class="cat-check">
-              <input type="checkbox" class="cat-filter" value="${c.name}" />
+              <input type="checkbox" class="cat-filter" value="${c.name}"${checkedCats.includes(c.name)?' checked':''} />
               <span class="cat-badge" style="background:${c.color};color:#fff;">
                 <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">label</span> ${c.name}
               </span>
@@ -207,11 +211,34 @@ const UI = {
   },
   dueChip(d){ if(!d) return ''; return `<span class="chip chip-date"><span class="material-symbols-outlined">event</span>${new Date(d).toLocaleDateString()}</span>`; },
 
-  renderNotes(projectId,{q='',category='',status=''}={}){
-    const ul=$('note-list'); if(!ul) return;
-    let notes=Store.listNotes(projectId);
-    if(q) notes=notes.filter(n=>(n.title+n.content).toLowerCase().includes(q.toLowerCase()));
-
+  renderNotes(projectId, filters = {}){
+    const ul = $('note-list'); if (!ul) return;
+    let notes = Store.listNotes(projectId);
+    const {
+      q = '',
+      categories = [],
+      status = '',
+      who = '__all'
+    } = filters || {};
+    // Filtro de busca (título + conteúdo)
+    if (q && q.trim()) {
+      const qlc = q.trim().toLowerCase();
+      notes = notes.filter(n => (n.title + ' ' + n.content).toLowerCase().includes(qlc));
+    }
+    // Filtro de categorias (checkbox)
+    if (Array.isArray(categories) && categories.length > 0) {
+      notes = notes.filter(n => categories.includes(String(n.category)));
+    }
+    // Filtro de status
+    if (status && status !== '') {
+      notes = notes.filter(n => n.status === status);
+    }
+    // Filtro de responsável
+    if (who && who !== '__all') {
+      const me = Store.getCurrentUser();
+      if (who === '__me') notes = notes.filter(n => String(n.userId) === String(me?.id));
+      else notes = notes.filter(n => String(n.userId) === String(who));
+    }
     ul.innerHTML = notes.length ? notes.map(n => {
       const cat = Store.listCategories(Store.getCurrentProject().id).find(c => c.name === n.category);
       return `<li data-id="${n.id}" style="position:relative;">
@@ -239,11 +266,39 @@ const UI = {
     }).join('') : '<li><em>Nenhuma nota encontrada</em></li>';
   },
 
-  renderBoard(projectId,{q='',category=''}={}){
-    const root=$('board'); if(!root) return;
-    let notes=Store.listNotes(projectId);
-    if(q) notes=notes.filter(n=>(n.title+n.content).toLowerCase().includes(q.toLowerCase()));
-    const cols=[{key:'todo',title:'A fazer'},{key:'doing',title:'Em progresso'},{key:'done',title:'Concluída'}];
+  renderBoard(projectId, filters = {}){
+    const root = $('board'); if (!root) return;
+    let notes = Store.listNotes(projectId);
+    const {
+      q = '',
+      categories = [],
+      status = '',
+      who = '__all'
+    } = filters || {};
+    // Filtro de busca (título + conteúdo)
+    if (q && q.trim()) {
+      const qlc = q.trim().toLowerCase();
+      notes = notes.filter(n => (n.title + ' ' + n.content).toLowerCase().includes(qlc));
+    }
+    // Filtro de categorias (checkbox)
+    if (Array.isArray(categories) && categories.length > 0) {
+      notes = notes.filter(n => categories.includes(String(n.category)));
+    }
+    // Filtro de status
+    if (status && status !== '') {
+      notes = notes.filter(n => n.status === status);
+    }
+    // Filtro de responsável
+    if (who && who !== '__all') {
+      const me = Store.getCurrentUser();
+      if (who === '__me') notes = notes.filter(n => String(n.userId) === String(me?.id));
+      else notes = notes.filter(n => String(n.userId) === String(who));
+    }
+    const cols = [
+      { key: 'todo', title: 'A fazer' },
+      { key: 'doing', title: 'Em progresso' },
+      { key: 'done', title: 'Concluída' }
+    ];
     root.innerHTML = cols.map(c => {
       const inCol = notes.filter(n => n.status === c.key);
       return `<section class="column" data-status="${c.key}">
