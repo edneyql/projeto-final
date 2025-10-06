@@ -22,6 +22,13 @@ function avatarFor(name='?'){
 }
 
 const Store = {
+  // ...existing code...
+  deleteCategory(name, projectId) {
+    const cats = get(K.categories, {});
+    if (!cats[projectId]) return;
+    cats[projectId] = cats[projectId].filter(c => (typeof c === 'string' ? c : c.name) !== name);
+    set(K.categories, cats);
+  },
   init(){
     const v = get(K.v, 0);
     if (v < vNow){
@@ -64,7 +71,53 @@ const Store = {
   upsertProject(name, ownerId){
     const p = { id:newid(), name, ownerId: ownerId || this.getCurrentUser()?.id || null };
     const all = this.listProjects(); all.push(p); set(K.projects, all);
-    const cats = get(K.categories, {}); cats[p.id] = cats[p.id] || []; set(K.categories, cats);
+    // Cria 3 categorias padrão com cores diferentes
+    const defaultCats = [
+      { name: 'Trabalho', color: '#4f4f8f' },
+      { name: 'Pessoal', color: '#8f4f6f' },
+      { name: 'Estudos', color: '#4f8f6f' }
+    ];
+    const cats = get(K.categories, {});
+    cats[p.id] = [...defaultCats];
+    set(K.categories, cats);
+    // Adiciona 3 notas padrão associadas às categorias
+    const userId = p.ownerId;
+    const defaultNotes = [
+      {
+        title: 'Primeira tarefa',
+        content: 'Esta é uma nota de exemplo para começar.',
+        category: defaultCats[0].name,
+        status: 'todo',
+        priority: 'normal',
+        dueDate: ''
+      },
+      {
+        title: 'Reunião inicial',
+        content: 'Agende uma reunião para alinhar o projeto.',
+        category: defaultCats[1].name,
+        status: 'todo',
+        priority: 'normal',
+        dueDate: ''
+      },
+      {
+        title: 'Checklist',
+        content: 'Crie um checklist das primeiras entregas.',
+        category: defaultCats[2].name,
+        status: 'todo',
+        priority: 'normal',
+        dueDate: ''
+      }
+    ];
+    const notes = get(K.notes, []);
+    defaultNotes.forEach((n) => {
+      notes.push({
+        id: newid(),
+        projectId: p.id,
+        userId,
+        ...n
+      });
+    });
+    set(K.notes, notes);
     return p.id;
   },
 
@@ -82,6 +135,12 @@ const Store = {
     } else {
       cats[projectId].push({ name, color });
     }
+    set(K.categories, cats);
+  },
+  deleteCategory(name, projectId) {
+    const cats = get(K.categories, {});
+    if (!cats[projectId]) return;
+    cats[projectId] = cats[projectId].filter(c => (typeof c === 'string' ? c : c.name) !== name);
     set(K.categories, cats);
   },
 

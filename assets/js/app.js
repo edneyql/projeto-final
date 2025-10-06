@@ -231,13 +231,19 @@ function bindEvents(){
       const color=$('category-color')?.value||'#4f4f8f';
       const proj=Store.getCurrentProject();
       if(editingCategoryName && editingCategoryName !== name) {
-        // Renomear: remover antiga
-        let cats = Store.listCategories(proj.id).filter(c => c.name !== editingCategoryName);
-        cats.push({name, color});
-        // Limpa todas e reinsere as restantes
-        let all = Store.listCategories(proj.id).filter(()=>false);
-        cats.forEach(c=>Store.upsertCategory(c, proj.id));
+        // Renomear: remover a antiga e adicionar a nova
+        Store.deleteCategory(editingCategoryName, proj.id);
+        Store.upsertCategory({name, color}, proj.id);
+        // Atualiza todas as notas que usavam a categoria antiga
+        let notes = Store.listNotes(proj.id);
+        notes.forEach(n => {
+          if(n.category === editingCategoryName) {
+            n.category = name;
+            Store.upsertNote(n);
+          }
+        });
       } else {
+        // Adiciona nova ou atualiza cor
         Store.upsertCategory({name, color}, proj.id);
       }
       $('modal-category')?.close();
@@ -261,10 +267,15 @@ function bindEvents(){
     if(delBtn) {
       const name = delBtn.dataset.delCat;
       if(confirm('Deseja realmente excluir esta categoria?')) {
-        let cats = Store.listCategories(proj.id).filter(c => c.name !== name);
-        // Limpa todas e reinsere as restantes
-        let all = Store.listCategories(proj.id).filter(()=>false);
-        cats.forEach(c=>Store.upsertCategory(c, proj.id));
+        Store.deleteCategory(name, proj.id);
+        // Remove categoria das notas
+        let notes = Store.listNotes(proj.id);
+        notes.forEach(n => {
+          if(n.category === name) {
+            n.category = '';
+            Store.upsertNote(n);
+          }
+        });
         UI.renderCategories(proj.id);
         renderApp();
         UI.toast('Categoria excluída.');
@@ -424,16 +435,23 @@ function bindEvents(){
 
   on('save-note','click',(e)=>{
     try{
-  const title=$('note-title')?.value, category=$('note-category')?.value,
-    assignee=String($('note-assignee')?.value), status=$('note-status')?.value,
-    content=$('note-content')?.value, priority=$('note-priority')?.value || 'normal',
-    dueDate=$('note-due')?.value || '';
+      const title=$('note-title')?.value, category=$('note-category')?.value,
+        assignee=String($('note-assignee')?.value), status=$('note-status')?.value,
+        content=$('note-content')?.value, priority=$('note-priority')?.value || 'normal',
+        dueDate=$('note-due')?.value || '';
       requireText(title,'Título'); requireText(content,'Conteúdo');
-    const currentProj=Store.getCurrentProject(); const id=editingNoteId ?? crypto.randomUUID();
-    Store.upsertNote({ id, projectId:currentProj.id, userId:assignee, title, category, status, content, priority, dueDate });
-    $('modal-note')?.close();
-    if (currentProj) UI.renderCategories(currentProj.id);
-    renderApp(); UI.toast(editingNoteId?'Nota atualizada.':'Nota criada.'); editingNoteId=null;
+      const currentProj=Store.getCurrentProject(); const id=editingNoteId ?? crypto.randomUUID();
+      Store.upsertNote({ id, projectId:currentProj.id, userId:assignee, title, category, status, content, priority, dueDate });
+      // Marca automaticamente a categoria da nota no filtro
+      if (category) {
+        const catCheckbox = Array.from(document.querySelectorAll('.cat-filter')).find(cb => cb.value === category);
+        if (catCheckbox && !catCheckbox.checked) {
+          catCheckbox.checked = true;
+        }
+      }
+      $('modal-note')?.close();
+      if (currentProj) UI.renderCategories(currentProj.id);
+      renderApp(); UI.toast(editingNoteId?'Nota atualizada.':'Nota criada.'); editingNoteId=null;
     }catch(err){ e.preventDefault(); UI.toast(err.message); }
   });
 
