@@ -3,7 +3,6 @@
 Aplicação **front‑end (HTML/CSS/JS)** para organizar **notas** por **projeto**, com **usuários**, **categorias/tags**, **busca e filtros**, visualização em **Lista** e **Quadro (Kanban)** com **drag & drop**, e **persistência em `localStorage`**.
 
 > **Disciplina:** Front-End — Prof. MSc. Reinaldo de Souza Júnior  
-> **Este README** segue estritamente a estrutura e os pontos pedidos no PDF.
 
 ---
 
