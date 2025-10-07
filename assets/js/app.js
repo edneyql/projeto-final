@@ -13,20 +13,7 @@ function resetAppData() {
   // Adiciona projeto padrão
   const projId = Store.upsertProject('Projeto exemplo', userId);
   Store.setCurrentProject(projId);
-  // Adiciona categorias padrão
-  ['Trabalho','Pessoal','Estudos'].forEach(c=>Store.upsertCategory({name:c, color:'#4f4f8f'}, projId));
-  // Adiciona nota exemplo
-  Store.upsertNote({
-    id: crypto.randomUUID(),
-    projectId: projId,
-    userId: userId,
-    title: 'Bem-vindo!',
-    category: 'Estudos',
-    status: 'todo',
-    content: 'Primeira nota de exemplo.',
-    priority: 'normal',
-    dueDate: ''
-  });
+  // As categorias e notas padrão já são criadas em upsertProject
   renderApp();
   UI.toast('Dados restaurados!');
 }
@@ -208,6 +195,19 @@ function openCategoryModal(cat) {
 
 // Eventos principais
 function bindEvents(){
+  // Limpar filtros
+  document.getElementById('btn-clear-filters')?.addEventListener('click', (e)=>{
+    e.preventDefault();
+    // Limpa busca
+    if($('q')) $('q').value = '';
+    // Limpa status
+    if($('filter-status')) $('filter-status').value = '';
+    // Limpa responsável
+    if($('filter-user')) $('filter-user').value = '__all';
+    // Desmarca todas categorias
+    document.querySelectorAll('.cat-filter').forEach(cb => { cb.checked = false; });
+    renderApp();
+  });
   on('nav-projects','click', ()=>{ goProjects(); });
 
   on('view-list','click', ()=>{ currentView='list'; localStorage.setItem(PREF_VIEW_KEY,'list'); renderApp(); });
