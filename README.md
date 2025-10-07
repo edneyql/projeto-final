@@ -135,7 +135,7 @@ Opcional: **GitHub Pages** (deploy direto da branch principal).
 
 ## 9) Limitações e próximos passos
 
-- Persistência local (sem sincronização entre dispositivos).  
+- Persistência em banco de dados.  
 - Próximas evoluções: editor rich‑text/Markdown, ordenação por prioridade/data, lembretes, exportar/importar JSON, tema dark.
 
 ---
